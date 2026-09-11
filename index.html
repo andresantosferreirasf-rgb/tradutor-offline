@@ -1,3 +1,5 @@
+
+     
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -33,48 +35,40 @@
 <div class="container">
     <h1>🌐 Tradutor Offline — Português ↔ Inglês</h1>
     <p class="subtitle">Tradução com IA — funciona sem internet após o 1º uso</p>
-
     <div class="status-box" id="status">
         <strong>Status:</strong> 🔄 Iniciando...
         <div class="progress-bar" id="progressBar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
     </div>
-
     <div class="lang-row">
         <span class="lang-label" id="fromLabel">🇧🇷 Português</span>
         <button class="swap" id="swapBtn" disabled>⇄</button>
         <span class="lang-label" id="toLabel">🇺🇸 Inglês</span>
     </div>
-
     <textarea id="inputText" placeholder="Digite seu texto aqui..."></textarea>
     <textarea id="output" readonly placeholder="Tradução aparecerá aqui..."></textarea>
-
     <button class="btn-translate" id="translateBtn" disabled>⏳ Carregando...</button>
-
     <div class="info">
         <strong>📌 Instruções:</strong><br>
-        • <strong>1ª vez:</strong> Precisa de internet para baixar o modelo (~300 MB).<br>
+        • <strong>1ª vez:</strong> Precisa de internet para baixar o modelo (~30 MB).<br>
         • Após baixado: funciona <strong>100% offline</strong>.<br>
         • Recomendado: usar <strong>Chrome, Edge ou Firefox</strong> atualizado.<br>
-        • Se demorar muito, aguarde — o download é grande na 1ª vez.
+        • Se demorar, aguarde — o download é bem menor agora!
     </div>
 </div>
-
 <script>
     const { pipeline, env } = window.transformers;
-
-    // 🔑 Configuração CRUCIAL: permite carregar do CDN e cachear
+    
+    // Configuração simplificada — sem caminhos personalizados que podem falhar
     env.allowLocalModels = false;
     env.allowRemoteModels = true;
-    env.cacheDir = 'transformers-cache'; // local onde o modelo fica salvo
-    env.localModelPath = '/models/';
-
-    let translatorPT_EN = null;
-    let translatorEN_PT = null;
+    // Removi cacheDir e localModelPath que podem causar conflitos
+    
+    let translator = null;
     let isPTtoEN = true;
     let isLoading = false;
-
+    
     const statusEl = document.getElementById('status');
     const progressBar = document.getElementById('progressBar');
     const progressFill = document.getElementById('progressFill');
@@ -84,110 +78,111 @@
     const swapBtn = document.getElementById('swapBtn');
     const fromLabel = document.getElementById('fromLabel');
     const toLabel = document.getElementById('toLabel');
-
+    
     function formatBytes(bytes) {
         if (!bytes) return '? MB';
         const mb = (bytes / (1024 * 1024)).toFixed(1);
         return `${mb} MB`;
     }
-
+    
     function updateProgress(data) {
+        console.log('Progresso:', data); // Ajuda a debugar no console
+        
         if (data.status === 'progress' && data.progress) {
             progressBar.style.display = 'block';
-            const pct = Math.min(100, Math.round(data.progress.progress * 100));
+            const loaded = data.progress.loaded || 0;
+            const total = data.progress.total || 1;
+            const pct = Math.min(100, Math.round((loaded / total) * 100));
             progressFill.style.width = pct + '%';
             statusEl.innerHTML = `<strong>Status:</strong> 📥 Baixando modelo... ${pct}%<br>
-                <small>(${formatBytes(data.progress.loaded)} de ${formatBytes(data.progress.total)})</small>`;
+                <small>(${formatBytes(loaded)} de ${formatBytes(total)})</small>`;
+        } else if (data.status === 'downloading') {
+            statusEl.innerHTML = `<strong>Status:</strong> 📥 Baixando: ${data.file || 'arquivo...'}<br>
+                <small>Tamanho: ${formatBytes(data.size || 0)}</small>`;
         } else if (data.status === 'loading') {
-            statusEl.innerHTML = `<strong>Status:</strong> 🔄 Carregando arquivos...<br>
-                <small>${data.file || ''}</small>`;
+            statusEl.innerHTML = `<strong>Status:</strong> 🔄 Carregando: ${data.file || 'modelo...'}`;
         }
     }
-
-    async function loadModels() {
+    
+    async function loadModel() {
         if (isLoading) return;
         isLoading = true;
         translateBtn.disabled = true;
         swapBtn.disabled = true;
-
+        
         try {
-            statusEl.innerHTML = '<strong>Status:</strong> 🔄 Inicializando modelo de tradução...';
+            statusEl.innerHTML = '<strong>Status:</strong> 🔄 Inicializando...';
             progressBar.style.display = 'none';
-
-            // Carrega UMA VEZ só e configura os idiomas corretamente
-            statusEl.innerHTML = '<strong>Status:</strong> 🔄 Preparando tradutor...';
-            translatorPT_EN = await pipeline('translation', 'Xenova/nllb-200-distilled-600M', {
+            
+            // Modelo MUITO menor (~30 MB) — feito especificamente pra pt ↔ en
+            translator = await pipeline('translation', 'Xenova/opus-mt-tc-bible-pt-en', {
                 progress_callback: updateProgress,
-                dtype: 'fp32' // ou 'fp16' se o navegador suportar
+                dtype: 'fp16' // Mais leve e rápido pra celular
             });
-
-            statusEl.innerHTML = '<strong>Status:</strong> ✅ Modelo carregado! Pronto para traduzir.';
+            
+            statusEl.innerHTML = '<strong>Status:</strong> ✅ Pronto! Digite e traduza!';
             progressBar.style.display = 'none';
             translateBtn.disabled = false;
             swapBtn.disabled = false;
             translateBtn.textContent = '🔍 Traduzir';
-
+            
         } catch (err) {
-            console.error('Erro ao carregar modelo:', err);
-            statusEl.innerHTML = `<strong>Status:</strong> ❌ Erro — ${err.message || 'Verifique sua conexão e recarregue a página.'}<br>
-                <small>Na 1ª vez é preciso ter internet para baixar o modelo (~300 MB).</small>`;
+            console.error('Erro:', err);
+            statusEl.innerHTML = `<strong>Status:</strong> ❌ Erro — ${err.message || 'Verifique a internet e recarregue.'}<br>
+                <small>Dica: Use Wi-Fi e mantenha a aba aberta até terminar.</small>`;
         } finally {
             isLoading = false;
         }
     }
-
+    
     async function translateText() {
         const text = inputText.value.trim();
         if (!text) {
             outputEl.value = '⚠️ Digite um texto para traduzir.';
             return;
         }
-        if (!translatorPT_EN) {
-            outputEl.value = '⏳ Modelo ainda não carregado. Aguarde...';
+        if (!translator) {
+            outputEl.value = '⏳ Modelo carregando. Aguarde...';
             return;
         }
-
+        
         translateBtn.disabled = true;
         translateBtn.textContent = '⏳ Traduzindo...';
         outputEl.value = '';
-
+        
         try {
-            let result;
-            if (isPTtoEN) {
-                result = await translatorPT_EN(text, {
-                    src_lang: 'por_Latn',
-                    tgt_lang: 'eng_Latn',
-                    max_new_tokens: 512
-                });
-            } else {
-                result = await translatorPT_EN(text, {
-                    src_lang: 'eng_Latn',
-                    tgt_lang: 'por_Latn',
-                    max_new_tokens: 512
-                });
-            }
+            // Esse modelo específico já é treinado pra pt→en
+            // Se quiser en→pt, troque o modelo por Xenova/opus-mt-tc-bible-en-pt
+            const result = await translator(text, {
+                max_new_tokens: 512
+            });
             outputEl.value = result[0].translation_text;
+            
         } catch (err) {
             outputEl.value = '❌ Erro: ' + (err.message || 'Não foi possível traduzir.');
             console.error(err);
         }
-
+        
         translateBtn.disabled = false;
         translateBtn.textContent = '🔍 Traduzir';
     }
-
+    
     function swapDirection() {
         isPTtoEN = !isPTtoEN;
         [fromLabel.textContent, toLabel.textContent] = [toLabel.textContent, fromLabel.textContent];
         [inputText.value, outputEl.value] = [outputEl.value, inputText.value];
+        outputEl.value = isPTtoEN ? '' : outputEl.value;
+        inputText.focus();
     }
-
+    
     // Eventos
     translateBtn.addEventListener('click', translateText);
     swapBtn.addEventListener('click', swapDirection);
-
+    
     // Inicia
-    loadModels();
+    loadModel();
 </script>
 </body>
 </html>
+
+     
