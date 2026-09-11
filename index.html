@@ -1,117 +1,76 @@
 
-     <!DOCTYPE html>
+    
+    <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tradutor Offline — Diagnóstico Completo</title>
-    <!-- Versão estável e confirmada da biblioteca -->
-    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js"></script>
+    <title>Teste Módulo ES</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
-        body { background: #f0f4f8; padding: 20px; max-width: 600px; margin: 0 auto; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #1e3a5f; font-size: 22px; margin-bottom: 15px; text-align: center; }
-        #status { padding: 12px; background: #e8f4fd; border-left: 4px solid #3498db; border-radius: 6px; margin-bottom: 15px; font-size: 14px; line-height: 1.5; min-height: 60px; }
-        .erro { background: #fdeded; border-left-color: #e53935; color: #c62828; }
-        .sucesso { background: #edf7ed; border-left-color: #43a047; color: #2e7d32; }
-        textarea { width: 100%; height: 100px; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 10px; resize: vertical; }
-        button { width: 100%; padding: 14px; font-size: 16px; border: none; border-radius: 8px; background: #27ae60; color: white; cursor: pointer; font-weight: bold; }
+        body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
+        #status { padding: 15px; background: #f0f0f0; border-radius: 8px; margin-bottom: 15px; min-height: 40px; }
+        .erro { background: #ffebee; color: #c62828; }
+        .ok { background: #e8f5e9; color: #2e7d32; }
+        textarea { width: 100%; height: 80px; padding: 10px; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; }
+        button { background: #27ae60; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; }
         button:disabled { background: #bdc3c7; cursor: not-allowed; }
-        .info { margin-top: 15px; font-size: 13px; color: #666; line-height: 1.6; }
     </style>
 </head>
 <body>
-<div class="card">
-    <h1>🌐 Tradutor Offline</h1>
-    <div id="status">🔄 Verificando biblioteca...</div>
+    <h1>🌐 Tradutor</h1>
+    <div id="status">🔄 Iniciando...</div>
+    <textarea id="entrada" placeholder="Digite em inglês..." disabled></textarea>
+    <textarea id="saida" readonly placeholder="Tradução em português..." disabled></textarea>
+    <button id="btn" disabled>⏳ Carregando...</button>
 
-    <textarea id="entrada" placeholder="Digite seu texto aqui..." disabled></textarea>
-    <textarea id="saida" readonly placeholder="Tradução aparecerá aqui..." disabled></textarea>
+    <script type="module">
+        // Carrega como MÓDULO — funciona diferente e costuma desbloquear
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
 
-    <button id="btnTraduzir" disabled>⏳ Carregando...</button>
+        const statusEl = document.getElementById('status');
+        const btn = document.getElementById('btn');
+        const entrada = document.getElementById('entrada');
+        const saida = document.getElementById('saida');
+        let tradutor = null;
 
-    <div class="info">
-        <strong>📋 Passos:</strong><br>
-        1. Biblioteca → 2. Conectando → 3. Baixando modelo (~30 MB) → 4. Pronto!<br>
-        Se parar em algum passo, a mensagem diz exatamente o que aconteceu.
-    </div>
-</div>
-
-<script>
-    const statusEl = document.getElementById('status');
-    const btn = document.getElementById('btnTraduzir');
-    const entrada = document.getElementById('entrada');
-    const saida = document.getElementById('saida');
-    let pipelineFn = null;
-
-    function mostrarStatus(texto, tipo = 'padrao') {
-        statusEl.className = '';
-        if (tipo === 'erro') statusEl.classList.add('erro');
-        if (tipo === 'sucesso') statusEl.classList.add('sucesso');
-        statusEl.innerHTML = texto;
-    }
-
-    async function iniciar() {
-        // Passo 1 — Verificar se a biblioteca carregou
-        if (!window.transformers) {
-            mostrarStatus('❌ Erro: Biblioteca não carregou. Verifique sua internet ou bloqueio de rede.', 'erro');
-            return;
+        function status(texto, tipo='') {
+            statusEl.className = tipo;
+            statusEl.innerHTML = texto;
         }
-        mostrarStatus('✅ Biblioteca carregada. Conectando ao Hugging Face...', 'sucesso');
 
-        // Passo 2 — Carregar o modelo
         try {
-            pipelineFn = window.transformers.pipeline;
-            const tradutor = await pipelineFn('translation', 'Xenova/opus-mt-en-pt', {
-                progress_callback: (dados) => {
-                    if (dados.status === 'progress' && dados.progress) {
-                        const pct = Math.round(dados.progress * 100);
-                        mostrarStatus(`📥 Baixando modelo: ${pct}%`);
-                    } else if (dados.status === 'downloading') {
-                        mostrarStatus(`📥 Baixando: ${dados.file || 'arquivo'}<br>Tamanho: ${(dados.size / 1024 / 1024).toFixed(1)} MB`);
-                    } else if (dados.status === 'loading') {
-                        mostrarStatus(`🔄 Carregando na memória: ${dados.file || 'modelo'}`);
+            status('✅ Biblioteca carregada! Baixando modelo...', 'ok');
+            
+            tradutor = await pipeline('translation', 'Xenova/opus-mt-en-pt', {
+                progress_callback: (d) => {
+                    if (d.status === 'progress' && d.progress) {
+                        const pct = Math.round(d.progress * 100);
+                        status(`📥 Baixando: ${pct}%`);
                     }
                 }
             });
 
-            mostrarStatus('✅ Pronto! Escreva e traduza!', 'sucesso');
+            status('✅ Pronto! Escreva abaixo:', 'ok');
             btn.disabled = false;
             btn.textContent = '🔍 Traduzir';
             entrada.disabled = false;
             saida.disabled = false;
 
-            // Traduzir ao clicar
             btn.onclick = async () => {
                 const texto = entrada.value.trim();
-                if (!texto) {
-                    saida.value = '⚠️ Digite algo primeiro.';
-                    return;
-                }
+                if (!texto) { saida.value = '⚠️ Digite algo primeiro.'; return; }
                 btn.disabled = true;
-                btn.textContent = '⏳ Traduzindo...';
-                saida.value = '';
-                try {
-                    const res = await tradutor(texto, { max_new_tokens: 512 });
-                    saida.value = res[0].translation_text;
-                } catch (e) {
-                    saida.value = '❌ Erro: ' + e.message;
-                }
+                btn.textContent = 'Traduzindo...';
+                const res = await tradutor(texto, { max_new_tokens: 512 });
+                saida.value = res[0].translation_text;
                 btn.disabled = false;
                 btn.textContent = '🔍 Traduzir';
             };
 
-        } catch (erro) {
-            console.error('Erro detalhado:', erro);
-            mostrarStatus(`❌ Falha: ${erro.message || 'Não foi possível conectar ao servidor.'}<br>
-            <strong>Pode ser:</strong> bloqueio de rede/CORS, conexão instável, ou navegador sem permissão.<br>
-            Tente com <strong>Wi-Fi</strong> e no <strong>Firefox</strong> ou <strong>computador</strong>.`, 'erro');
+        } catch (e) {
+            console.error(e);
+            status(`❌ Erro: ${e.message}<br>Verifique sua rede ou tente com outra internet.`, 'erro');
         }
-    }
-
-    // Inicia quando a página carrega
-    window.addEventListener('DOMContentLoaded', iniciar);
-</script>
+    </script>
 </body>
 </html>
