@@ -1,188 +1,117 @@
 
-     
-<!DOCTYPE html>
+     <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tradutor Offline — Português ↔ Inglês</title>
-    <script src="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.2/dist/transformers.min.js"></script>
+    <title>Tradutor Offline — Diagnóstico Completo</title>
+    <!-- Versão estável e confirmada da biblioteca -->
+    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background: linear-gradient(135deg, #1e3a5f, #2d5b8c); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .container { background: #fff; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); width: 100%; max-width: 850px; padding: 30px; }
-        h1 { text-align: center; color: #1e3a5f; margin-bottom: 10px; font-size: 26px; }
-        .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 25px; }
-        .status-box { background: #e8f4fd; border-left: 4px solid #3498db; padding: 12px 15px; margin-bottom: 20px; border-radius: 6px; font-size: 14px; color: #2c3e50; }
-        .progress-bar { height: 8px; background: #eee; border-radius: 4px; margin-top: 8px; overflow: hidden; display: none; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); width: 0%; transition: width 0.3s; }
-        .lang-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .lang-label { font-weight: 600; color: #2c3e50; font-size: 15px; }
-        button.swap { background: #3498db; color: white; border: none; width: 42px; height: 42px; border-radius: 50%; padding: 0; font-weight: bold; font-size: 18px; cursor: pointer; transition: background 0.2s; }
-        button.swap:hover { background: #2980b9; }
-        button.swap:disabled { background: #bdc3c7; cursor: not-allowed; }
-        textarea { width: 100%; height: 140px; padding: 15px; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; resize: vertical; margin-bottom: 15px; transition: border-color 0.3s; }
-        textarea:focus { outline: none; border-color: #3498db; }
-        #output { background: #f8f9fa; }
-        .btn-translate { width: 100%; background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; border: none; padding: 14px; font-size: 18px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; }
-        .btn-translate:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(39,174,96,0.3); }
-        .btn-translate:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
-        .info { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 8px; font-size: 13px; color: #555; line-height: 1.6; }
-        .info strong { color: #1e3a5f; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { background: #f0f4f8; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #1e3a5f; font-size: 22px; margin-bottom: 15px; text-align: center; }
+        #status { padding: 12px; background: #e8f4fd; border-left: 4px solid #3498db; border-radius: 6px; margin-bottom: 15px; font-size: 14px; line-height: 1.5; min-height: 60px; }
+        .erro { background: #fdeded; border-left-color: #e53935; color: #c62828; }
+        .sucesso { background: #edf7ed; border-left-color: #43a047; color: #2e7d32; }
+        textarea { width: 100%; height: 100px; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 10px; resize: vertical; }
+        button { width: 100%; padding: 14px; font-size: 16px; border: none; border-radius: 8px; background: #27ae60; color: white; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .info { margin-top: 15px; font-size: 13px; color: #666; line-height: 1.6; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>🌐 Tradutor Offline — Português ↔ Inglês</h1>
-    <p class="subtitle">Tradução com IA — funciona sem internet após o 1º uso</p>
-    <div class="status-box" id="status">
-        <strong>Status:</strong> 🔄 Iniciando...
-        <div class="progress-bar" id="progressBar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-    </div>
-    <div class="lang-row">
-        <span class="lang-label" id="fromLabel">🇧🇷 Português</span>
-        <button class="swap" id="swapBtn" disabled>⇄</button>
-        <span class="lang-label" id="toLabel">🇺🇸 Inglês</span>
-    </div>
-    <textarea id="inputText" placeholder="Digite seu texto aqui..."></textarea>
-    <textarea id="output" readonly placeholder="Tradução aparecerá aqui..."></textarea>
-    <button class="btn-translate" id="translateBtn" disabled>⏳ Carregando...</button>
+<div class="card">
+    <h1>🌐 Tradutor Offline</h1>
+    <div id="status">🔄 Verificando biblioteca...</div>
+
+    <textarea id="entrada" placeholder="Digite seu texto aqui..." disabled></textarea>
+    <textarea id="saida" readonly placeholder="Tradução aparecerá aqui..." disabled></textarea>
+
+    <button id="btnTraduzir" disabled>⏳ Carregando...</button>
+
     <div class="info">
-        <strong>📌 Instruções:</strong><br>
-        • <strong>1ª vez:</strong> Precisa de internet para baixar o modelo (~30 MB).<br>
-        • Após baixado: funciona <strong>100% offline</strong>.<br>
-        • Recomendado: usar <strong>Chrome, Edge ou Firefox</strong> atualizado.<br>
-        • Se demorar, aguarde — o download é bem menor agora!
+        <strong>📋 Passos:</strong><br>
+        1. Biblioteca → 2. Conectando → 3. Baixando modelo (~30 MB) → 4. Pronto!<br>
+        Se parar em algum passo, a mensagem diz exatamente o que aconteceu.
     </div>
 </div>
+
 <script>
-    const { pipeline, env } = window.transformers;
-    
-    // Configuração simplificada — sem caminhos personalizados que podem falhar
-    env.allowLocalModels = false;
-    env.allowRemoteModels = true;
-    // Removi cacheDir e localModelPath que podem causar conflitos
-    
-    let translator = null;
-    let isPTtoEN = true;
-    let isLoading = false;
-    
     const statusEl = document.getElementById('status');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-    const inputText = document.getElementById('inputText');
-    const outputEl = document.getElementById('output');
-    const translateBtn = document.getElementById('translateBtn');
-    const swapBtn = document.getElementById('swapBtn');
-    const fromLabel = document.getElementById('fromLabel');
-    const toLabel = document.getElementById('toLabel');
-    
-    function formatBytes(bytes) {
-        if (!bytes) return '? MB';
-        const mb = (bytes / (1024 * 1024)).toFixed(1);
-        return `${mb} MB`;
+    const btn = document.getElementById('btnTraduzir');
+    const entrada = document.getElementById('entrada');
+    const saida = document.getElementById('saida');
+    let pipelineFn = null;
+
+    function mostrarStatus(texto, tipo = 'padrao') {
+        statusEl.className = '';
+        if (tipo === 'erro') statusEl.classList.add('erro');
+        if (tipo === 'sucesso') statusEl.classList.add('sucesso');
+        statusEl.innerHTML = texto;
     }
-    
-    function updateProgress(data) {
-        console.log('Progresso:', data); // Ajuda a debugar no console
-        
-        if (data.status === 'progress' && data.progress) {
-            progressBar.style.display = 'block';
-            const loaded = data.progress.loaded || 0;
-            const total = data.progress.total || 1;
-            const pct = Math.min(100, Math.round((loaded / total) * 100));
-            progressFill.style.width = pct + '%';
-            statusEl.innerHTML = `<strong>Status:</strong> 📥 Baixando modelo... ${pct}%<br>
-                <small>(${formatBytes(loaded)} de ${formatBytes(total)})</small>`;
-        } else if (data.status === 'downloading') {
-            statusEl.innerHTML = `<strong>Status:</strong> 📥 Baixando: ${data.file || 'arquivo...'}<br>
-                <small>Tamanho: ${formatBytes(data.size || 0)}</small>`;
-        } else if (data.status === 'loading') {
-            statusEl.innerHTML = `<strong>Status:</strong> 🔄 Carregando: ${data.file || 'modelo...'}`;
-        }
-    }
-    
-    async function loadModel() {
-        if (isLoading) return;
-        isLoading = true;
-        translateBtn.disabled = true;
-        swapBtn.disabled = true;
-        
-        try {
-            statusEl.innerHTML = '<strong>Status:</strong> 🔄 Inicializando...';
-            progressBar.style.display = 'none';
-            
-            // Modelo MUITO menor (~30 MB) — feito especificamente pra pt ↔ en
-            translator = await pipeline('translation', 'Xenova/opus-mt-tc-bible-pt-en', {
-                progress_callback: updateProgress,
-                dtype: 'fp16' // Mais leve e rápido pra celular
-            });
-            
-            statusEl.innerHTML = '<strong>Status:</strong> ✅ Pronto! Digite e traduza!';
-            progressBar.style.display = 'none';
-            translateBtn.disabled = false;
-            swapBtn.disabled = false;
-            translateBtn.textContent = '🔍 Traduzir';
-            
-        } catch (err) {
-            console.error('Erro:', err);
-            statusEl.innerHTML = `<strong>Status:</strong> ❌ Erro — ${err.message || 'Verifique a internet e recarregue.'}<br>
-                <small>Dica: Use Wi-Fi e mantenha a aba aberta até terminar.</small>`;
-        } finally {
-            isLoading = false;
-        }
-    }
-    
-    async function translateText() {
-        const text = inputText.value.trim();
-        if (!text) {
-            outputEl.value = '⚠️ Digite um texto para traduzir.';
+
+    async function iniciar() {
+        // Passo 1 — Verificar se a biblioteca carregou
+        if (!window.transformers) {
+            mostrarStatus('❌ Erro: Biblioteca não carregou. Verifique sua internet ou bloqueio de rede.', 'erro');
             return;
         }
-        if (!translator) {
-            outputEl.value = '⏳ Modelo carregando. Aguarde...';
-            return;
-        }
-        
-        translateBtn.disabled = true;
-        translateBtn.textContent = '⏳ Traduzindo...';
-        outputEl.value = '';
-        
+        mostrarStatus('✅ Biblioteca carregada. Conectando ao Hugging Face...', 'sucesso');
+
+        // Passo 2 — Carregar o modelo
         try {
-            // Esse modelo específico já é treinado pra pt→en
-            // Se quiser en→pt, troque o modelo por Xenova/opus-mt-tc-bible-en-pt
-            const result = await translator(text, {
-                max_new_tokens: 512
+            pipelineFn = window.transformers.pipeline;
+            const tradutor = await pipelineFn('translation', 'Xenova/opus-mt-en-pt', {
+                progress_callback: (dados) => {
+                    if (dados.status === 'progress' && dados.progress) {
+                        const pct = Math.round(dados.progress * 100);
+                        mostrarStatus(`📥 Baixando modelo: ${pct}%`);
+                    } else if (dados.status === 'downloading') {
+                        mostrarStatus(`📥 Baixando: ${dados.file || 'arquivo'}<br>Tamanho: ${(dados.size / 1024 / 1024).toFixed(1)} MB`);
+                    } else if (dados.status === 'loading') {
+                        mostrarStatus(`🔄 Carregando na memória: ${dados.file || 'modelo'}`);
+                    }
+                }
             });
-            outputEl.value = result[0].translation_text;
-            
-        } catch (err) {
-            outputEl.value = '❌ Erro: ' + (err.message || 'Não foi possível traduzir.');
-            console.error(err);
+
+            mostrarStatus('✅ Pronto! Escreva e traduza!', 'sucesso');
+            btn.disabled = false;
+            btn.textContent = '🔍 Traduzir';
+            entrada.disabled = false;
+            saida.disabled = false;
+
+            // Traduzir ao clicar
+            btn.onclick = async () => {
+                const texto = entrada.value.trim();
+                if (!texto) {
+                    saida.value = '⚠️ Digite algo primeiro.';
+                    return;
+                }
+                btn.disabled = true;
+                btn.textContent = '⏳ Traduzindo...';
+                saida.value = '';
+                try {
+                    const res = await tradutor(texto, { max_new_tokens: 512 });
+                    saida.value = res[0].translation_text;
+                } catch (e) {
+                    saida.value = '❌ Erro: ' + e.message;
+                }
+                btn.disabled = false;
+                btn.textContent = '🔍 Traduzir';
+            };
+
+        } catch (erro) {
+            console.error('Erro detalhado:', erro);
+            mostrarStatus(`❌ Falha: ${erro.message || 'Não foi possível conectar ao servidor.'}<br>
+            <strong>Pode ser:</strong> bloqueio de rede/CORS, conexão instável, ou navegador sem permissão.<br>
+            Tente com <strong>Wi-Fi</strong> e no <strong>Firefox</strong> ou <strong>computador</strong>.`, 'erro');
         }
-        
-        translateBtn.disabled = false;
-        translateBtn.textContent = '🔍 Traduzir';
     }
-    
-    function swapDirection() {
-        isPTtoEN = !isPTtoEN;
-        [fromLabel.textContent, toLabel.textContent] = [toLabel.textContent, fromLabel.textContent];
-        [inputText.value, outputEl.value] = [outputEl.value, inputText.value];
-        outputEl.value = isPTtoEN ? '' : outputEl.value;
-        inputText.focus();
-    }
-    
-    // Eventos
-    translateBtn.addEventListener('click', translateText);
-    swapBtn.addEventListener('click', swapDirection);
-    
-    // Inicia
-    loadModel();
+
+    // Inicia quando a página carrega
+    window.addEventListener('DOMContentLoaded', iniciar);
 </script>
 </body>
 </html>
-
-     
